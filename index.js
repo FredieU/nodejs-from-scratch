@@ -1,9 +1,29 @@
 const http = require('http');
+const https = require('https');
 const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
 const config = require('./config');
+const fs = require('fs');
 
-const server = http.createServer((req, res) => {
+const httpServer = http.createServer((req, res) => {
+  commonServer(req, res);
+});
+httpServer.listen(config.httpPort, () =>
+  console.log(`\nListening on port ${config.httpPort}...`),
+);
+
+const httpsServerOptions = {
+  key: fs.readFileSync('./https/key.pem'),
+  cert: fs.readFileSync('./https/cert.pem'),
+};
+const httpsServer = https.createServer(httpsServerOptions, (req, res) => {
+  commonServer(req, res);
+});
+httpsServer.listen(config.httpsPort, () =>
+  console.log(`\nListening on port ${config.httpsPort} (HTTPS)...`),
+);
+
+const commonServer = (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const path = parsedUrl.pathname;
   const trimmedPath = path.replace(/^\/+|\/+$/g, '');
@@ -45,11 +65,7 @@ const server = http.createServer((req, res) => {
       console.log(`Response: Status ${statusCode}, Payload ${payloadString}`);
     });
   });
-});
-
-const port = process.env.PORT || config.port;
-const logMessage = `\nListening on port ${port} in ${config.envName.toUpperCase()} mode...`;
-server.listen(port, () => console.log(logMessage));
+};
 
 const handlers = {};
 
