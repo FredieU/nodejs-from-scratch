@@ -19,14 +19,44 @@ const server = http.createServer((req, res) => {
   req.on('end', () => {
     buffer += decoder.end();
 
-    res.end('BOOP\n');
+    const handler = router[trimmedPath] || handlers.notFound;
 
-    console.log(`\n${method.toUpperCase()} /${trimmedPath}`);
-    console.log('Headers: ', headers);
-    Object.keys(queryStringObj).length &&
-      console.log('Query string params: ', queryStringObj);
-    buffer && console.log('Payload: ', buffer);
+    const data = {
+      headers,
+      method,
+      path: trimmedPath,
+      payload: buffer,
+      queryString: queryStringObj,
+    };
+
+    handler(data, (statusCode = 200, payload = {}) => {
+      const payloadString = JSON.stringify(payload);
+
+      res.writeHead(statusCode);
+      res.end(payloadString);
+
+      console.log(`\n${method.toUpperCase()} /${trimmedPath}`);
+      console.log('Headers: ', headers);
+      Object.keys(queryStringObj).length &&
+        console.log('Query string params: ', queryStringObj);
+      buffer && console.log('Payload: ', buffer);
+      console.log(`Response: Status ${statusCode}, Payload ${payloadString}`);
+    });
   });
 });
 
 server.listen(3000, () => console.log('\nListening on port 3000...'));
+
+const handlers = {};
+
+handlers.sample = (data, callback) => {
+  callback(406, { key: 'value' });
+};
+
+handlers.notFound = (data, callback) => {
+  callback(404);
+};
+
+const router = {
+  test: handlers.sample,
+};
